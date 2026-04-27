@@ -12,15 +12,13 @@ from client.network import NetworkClient
 from client.identity import IdentityManager
 from client.gui_analyzer import AnalyzerFrame
 from client.gui_secrets import SecretModal
-from common.crypto import decrypt_field, CryptoError
+from common.crypto import CryptoError
+from client.util import _decrypt_secret_row, _is_session_error
 
 # Constants - Window
 WINDOW_TITLE = 'SurfCrypt'
 WINDOW_WIDTH = 900
 WINDOW_HEIGHT = 580
-
-# Keywords that indicate the server rejected our session token
-_SESSION_ERROR_KEYWORDS = ('session', 'unauthorized', 'invalid token', 'expired')
 
 
 # Application Class
@@ -456,23 +454,3 @@ class DashboardFrame(ttk.Frame):
         self.controller.show_frame('LoginFrame')
 
 
-# Module Level Methods
-def _decrypt_secret_row(row, vault_key):
-    """
-    Decrypt all five credential fields from a server row dict.
-    Expects hex-encoded ciphertext and nonce keys per field.
-    Returns a plaintext dict with keys: name, url, username, password, notes
-    """
-    fields = ('name', 'url', 'username', 'password', 'notes')
-    result = {}
-    for field in fields:
-        raw_cipher = bytes.fromhex(row[f'{field}_encrypted'])
-        raw_nonce = bytes.fromhex(row[f'nonce_{field}'])
-        result[field] = decrypt_field(raw_cipher, vault_key, raw_nonce)
-    return result
-
-
-def _is_session_error(error_str):
-    """Return True if the error string suggests a server side session rejection"""
-    lowered = error_str.lower()
-    return any(kw in lowered for kw in _SESSION_ERROR_KEYWORDS)

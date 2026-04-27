@@ -8,7 +8,7 @@ from tkinter import ttk
 
 # Imports - Internal Modules
 from common.crypto import encrypt_field, CryptoError, generate_password
-from client.gui_client import _is_session_error
+from client.util import _is_session_error
 
 
 # SecretModal Class

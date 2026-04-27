@@ -36,7 +36,9 @@ class UserDatabaseManager:
         """Establish the SQLite connection if it doesn't already exist"""
         if self.conn is None:
             # Explicit OS interaction to ensure the data directory exists
-            os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+            dir_path = os.path.dirname(self.db_path)
+            if dir_path:
+                os.makedirs(dir_path, exist_ok=True)
             self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
             self.conn.row_factory = sqlite3.Row
 

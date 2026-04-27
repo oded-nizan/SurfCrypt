@@ -4,7 +4,6 @@ SurfCrypt Client Entry Point
 
 # Imports - Default Libraries
 import sys
-import os
 from pathlib import Path
 
 # Imports - External Libraries
