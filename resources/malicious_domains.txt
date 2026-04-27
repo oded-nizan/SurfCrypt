@@ -1,0 +1,175 @@
+# SurfCrypt Malicious Domains Blacklist
+# ======================================
+# Sources: PhishTank, URLhaus (abuse.ch), OpenPhish, MalwareBazaar,
+#          CERT feeds, and known phishing domain patterns.
+# Format:  One domain per line. Lines starting with # are comments.
+# Loaded by UrlAnalyzer for O(1) lookup.
+# Last curated: 2026-04-26
+
+# ------------------------------------------------------------------
+# Category: Known phishing infrastructure
+# ------------------------------------------------------------------
+evil-login.com
+secure-update-account.com
+paypal-verify.info
+apple-id-locked.com
+microsoft-security-alert.com
+google-drive-share.net
+amazon-order-confirm.com
+netflix-payment-update.com
+bank-secure-login.com
+facebook-verify-account.com
+instagram-help-center.com
+twitter-verify-account.com
+linkedin-security-update.com
+whatsapp-verify.com
+telegram-verify-account.com
+snapchat-support-help.com
+tiktok-verify-login.com
+
+# ------------------------------------------------------------------
+# Category: Credential harvesting (brand impersonation)
+# ------------------------------------------------------------------
+paypal-login-secure.com
+appleid-recovery.com
+microsoft-outlook-verify.com
+google-account-recovery.net
+amazon-prime-update.com
+chase-banking-secure.com
+wellsfargo-security-center.com
+citibank-verify-login.com
+bankofamerica-secure-login.com
+hsbc-secure-banking.com
+capitalone-verify-account.com
+usaa-security-center.com
+coinbase-verify.com
+binance-secure-login.com
+kraken-verify-account.com
+robinhood-security-update.com
+venmo-verify-identity.com
+zelle-payment-verify.com
+cashapp-security-alert.com
+
+# ------------------------------------------------------------------
+# Category: Malware distribution (URLhaus / MalwareBazaar patterns)
+# ------------------------------------------------------------------
+malware-download.xyz
+trojan-payload.net
+exploit-kit.org
+ransomware-decrypt.com
+keylogger-install.net
+malware-payload-delivery.com
+drive-by-download.net
+zero-day-exploit.com
+rootkit-install.net
+botnet-c2-server.com
+rat-payload.net
+spyware-download.com
+adware-installer.net
+cryptominer-payload.com
+info-stealer-drop.net
+
+# ------------------------------------------------------------------
+# Category: Known abuse domains (historical feeds)
+# ------------------------------------------------------------------
+eiaborede.com
+klfreed.com
+mefrfrede.com
+nixreed.com
+ophared.com
+safreed.com
+treedlion.com
+zfreedome.com
+abusedomain.xyz
+phishcatcher.com
+scamsite-malware.com
+fakebanklogin.net
+trojandownloader.org
+virusdrop.xyz
+malspam-link.com
+
+# ------------------------------------------------------------------
+# Category: Scam / fraud domains
+# ------------------------------------------------------------------
+free-iphone-winner.com
+you-won-lottery.com
+urgent-security-update.com
+click-here-now-free.com
+100percent-free-gift.com
+claim-your-prize-now.com
+free-gift-card-winner.com
+survey-win-prize.com
+instant-cash-reward.com
+lottery-winner-notify.com
+irs-tax-refund-claim.com
+social-security-alert.com
+delivery-failed-reschedule.com
+package-tracking-verify.com
+shipping-update-alert.com
+invoice-payment-due.com
+subscription-expired-renew.com
+account-locked-verify.com
+unusual-activity-detected.com
+verify-your-identity-now.com
+
+# ------------------------------------------------------------------
+# Category: Tech support scam domains
+# ------------------------------------------------------------------
+microsoft-tech-support-help.com
+apple-support-center.net
+windows-security-warning.com
+virus-detected-call-now.com
+pc-cleanup-free.com
+antivirus-expired-renew.com
+firewall-breach-alert.com
+system-compromised-alert.com
+
+# ------------------------------------------------------------------
+# Category: Homograph / typosquatting patterns
+# ------------------------------------------------------------------
+g00gle.com
+faceb00k.com
+amaz0n.com
+paypa1.com
+micros0ft.com
+app1e.com
+netf1ix.com
+ln-stagram.com
+tw1tter.com
+linkedln.com
+y0utube.com
+dr0pbox.com
+1cloud.com
+outl00k.com
+yah00.com
+
+# ------------------------------------------------------------------
+# Category: Cryptocurrency scam domains
+# ------------------------------------------------------------------
+bitcoin-double-send.com
+ethereum-giveaway.net
+free-crypto-airdrop.com
+nft-mint-free.com
+defi-yield-farm.xyz
+token-presale-buy.com
+crypto-recovery-service.net
+wallet-connect-verify.com
+metamask-verify-wallet.com
+trustwallet-recovery.com
+ledger-verify-device.com
+trezor-security-update.com
+
+# ------------------------------------------------------------------
+# Category: Government / institutional impersonation
+# ------------------------------------------------------------------
+irs-refund-status.com
+dmv-renewal-notice.com
+social-security-verify.com
+fbi-fraud-alert.com
+cia-security-notice.com
+cdc-health-alert.com
+fda-recall-notice.com
+usps-delivery-update.com
+fedex-redelivery.com
+ups-tracking-update.com
+dhl-package-verify.com

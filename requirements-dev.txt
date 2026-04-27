@@ -1,0 +1,11 @@
+# Include production dependencies
+-r requirements.txt
+
+# --- TESTING & QUALITY ---
+pytest==9.0.3 # Framework for writing and running test suites.
+pytest-cov==7.1.0 # Plugin for pytest to report test coverage.
+pytest-timeout==2.4.0 # Plugin for pytest to abort long-running tests.
+coverage==7.13.5 # Tool for measuring code coverage during tests.
+pluggy==1.6.0 # Plugin management and hook calling mechanism.
+iniconfig==2.3.0 # Small config-parsing library for INI files.
+packaging==26.2 # Core utilities for Python package metadata.

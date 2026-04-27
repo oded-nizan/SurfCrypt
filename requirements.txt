@@ -1,0 +1,19 @@
+# --- SECURITY & CRYPTOGRAPHY ---
+argon2-cffi==25.1.0 # Secure password hashing using Argon2 algorithm.
+argon2-cffi-bindings==25.1.0 # Low-level C bindings for Argon2 hashing.
+cryptography==47.0.0 # High-level recipes and low-level primitives for crypto.
+PyNaCl==1.6.2 # Python binding to Networking and Cryptography library.
+cffi==2.0.0 # C Foreign Function Interface for calling C code.
+pycparser==3.0 # C parser in Python for CFFI.
+
+# --- NETWORKING & HTTP ---
+requests==2.33.1 # Simple and elegant HTTP library for humans.
+urllib3==2.6.3 # Powerful HTTP client with connection pooling.
+certifi==2026.4.22 # Root certificates for validating SSL/TLS connections.
+idna==3.13 # Internationalized Domain Names in Applications support.
+charset-normalizer==3.4.7 # Character set detector for byte sequences.
+
+# --- UTILITIES ---
+python-dotenv==1.2.2 # Loads environment variables from .env files.
+colorama==0.4.6 # Cross-platform colored terminal text support.
+Pygments==2.20.0 # Generic syntax highlighter for code display.
