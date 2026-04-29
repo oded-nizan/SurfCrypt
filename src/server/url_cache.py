@@ -1,12 +1,22 @@
+"""
+url_cache.py is a file to initialize and handle the url cache databse
+"""
+
+# Imports - Default Libraries
 import sqlite3
 import threading
 import json
 import os
 from pathlib import Path
+
+# Imports - Internal Modules
 from server.user_db import DatabaseError
 
+# Constants
 DEFAULT_CACHE_DB_PATH = os.getenv('SURFCRYPT_CACHE_DB', './data/url_cache.db')
 
+
+# CahceDatabaseManager Class
 class CacheDatabaseManager:
     """Class to manage URL analysis cache database operations"""
     def __init__(self, db_path=DEFAULT_CACHE_DB_PATH):
@@ -17,7 +27,9 @@ class CacheDatabaseManager:
     def connect(self):
         """Establish the SQLite connection if it doesn't already exist"""
         if self.conn is None:
-            os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+            dir_path = os.path.dirname(self.db_path)
+            if dir_path:
+                os.makedirs(dir_path, exist_ok=True)
             self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
             self.conn.row_factory = sqlite3.Row
 

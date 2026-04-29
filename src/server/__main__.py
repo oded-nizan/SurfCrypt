@@ -7,6 +7,9 @@ import sys
 import os
 from pathlib import Path
 
+# Ensure src is in path for internal module imports
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 # Imports - External Libraries
 from dotenv import load_dotenv
 
@@ -14,10 +17,6 @@ from dotenv import load_dotenv
 from server.user_db import UserDatabaseManager
 from server.url_cache import CacheDatabaseManager
 from server.server import SessionServer, DEFAULT_HOST, DEFAULT_PORT
-
-
-# Ensure src is in path when running as module
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
 def main():

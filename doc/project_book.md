@@ -69,9 +69,11 @@ SurfCrypt is a desktop application for managing credentials and analyzing URLs f
       |  Master password and VaultKey never leave this process
 
 **Execution Entry Points:**
-The project uses standard Python module execution:
-- Start Server: `python -m server` (executes `src/server/__main__.py`)
-- Start Client: `python -m client` (executes `src/client/__main__.py`)
+The project uses standard Python module execution from the project root:
+- Start Server: `python -m src.server`
+- Start Client: `python -m src.client`
+
+*Note: Always use dots (`.`) instead of slashes (`/`) when using the `-m` flag.*
 ```
 
 ---

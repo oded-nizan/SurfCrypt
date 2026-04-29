@@ -1,17 +1,15 @@
 """
 analyzer.py is the URL threat analysis engine. It takes a raw URL and returns a
-security verdict: a 1-5 rating and a Safe / Warning / Danger recommendation.
+security verdict: a 1-5 rating and a Safe / Caution / Danger recommendation.
 """
 
 # Imports - Default Libraries
 import re
 from pathlib import Path
-from urllib.parse import urlparse
 
 # Imports - External Libraries
 import requests
-
-# Imports - Internal Modules
+from urllib.parse import urlparse
 
 # Constants - Paths
 _RESOURCES = Path(__file__).resolve().parent.parent.parent / 'resources'
@@ -29,7 +27,7 @@ USER_AGENT = (
 # Constants - Scoring
 BASE_RATING = 5
 MIN_RATING = 1
-MAX_SUBDOMAIN_COUNT = 3  # More than this triggers excess-subdomain penalty
+MAX_SUBDOMAIN_COUNT = 3
 
 # Constants - Detection
 EXECUTABLE_EXTENSIONS = {'.exe', '.bat', '.msi', '.apk', '.scr'}
@@ -39,6 +37,7 @@ DOWNLOAD_CONTENT_TYPES = {
     'application/zip',
     'application/vnd.android.package-archive',
 }
+
 
 # Custom Exceptions
 class AnalyzerError(Exception):
@@ -64,11 +63,10 @@ def _is_raw_ip(domain):
 
 
 def _count_subdomains(domain):
-    """Count subdomains; e.g. a.b.c.example.com → 3 subdomains"""
+    """Count subdomains; e.g. a.b.c.example.com -> 3 subdomains"""
     if not domain or _is_raw_ip(domain):
         return 0
     parts = domain.split('.')
-    # Registrable domain = last 2 labels; everything before is subdomains
     return max(0, len(parts) - 2)
 
 
@@ -77,7 +75,7 @@ def _is_blacklisted(domain, blacklist):
     if not domain:
         return False
     parts = domain.split('.')
-    # Walk from full domain up to registrable domain (e.g. sub.evil.com → evil.com)
+    # Walk from full domain up to registrable domain (e.g. sub.evil.com -> evil.com)
     for i in range(len(parts) - 1):
         if '.'.join(parts[i:]) in blacklist:
             return True
@@ -93,14 +91,13 @@ def _has_executable_extension(url):
 def _check_download_headers(response):
     """Return True if response headers indicate an unprompted file download"""
     content_disposition = response.headers.get('Content-Disposition', '')
-    # Strip parameters (e.g. 'application/zip; charset=utf-8' → 'application/zip')
     content_type = response.headers.get('Content-Type', '').split(';')[0].strip().lower()
     return 'attachment' in content_disposition or content_type in DOWNLOAD_CONTENT_TYPES
 
 
 # Internal Functions - Resource Loading
 def _load_domains_file(path, label):
-    """Read a domain-list file and return a lowercase set; warn and degrade gracefully on failure"""
+    """Read a domain list file and return a lowercase set; warn and degrade gracefully on failure"""
     try:
         domains = set()
         with open(path, 'r', encoding='utf-8') as f:
@@ -129,20 +126,20 @@ def _load_shorteners():
 
 # Main Class
 class UrlAnalyzer:
+    """URL Analyzer Engine; takes url and returns recommendation, rating, and data"""
+
     def __init__(self):
-        """Initialize UrlAnalyzer; load blacklist and shorteners into memory for O(1) lookups"""
         self._blacklist = _load_blacklist()
         self._shorteners = _load_shorteners()
 
-    def analyze(self, url: str) -> dict:
+    def analyze(self, url):
         """Perform full threat analysis on a URL; return verdict dictionary"""
-        # Normalize - prepend scheme if missing
         if not url.startswith(('http://', 'https://')):
-            url = 'http://' + url
+            url = 'https://' + url
 
         original_domain = _extract_domain(url)
 
-        # Active network resolution - follow redirects to find true destination
+        # Follow redirects to find true destination
         final_url = url
         final_domain = original_domain
         redirected = False
@@ -159,7 +156,7 @@ class UrlAnalyzer:
             )
             final_url = response.url
             final_domain = _extract_domain(final_url)
-            redirected = final_url != url
+            redirected = (final_url != url)
             triggers_download = _check_download_headers(response)
             response.close()
         except requests.RequestException as e:
@@ -178,11 +175,7 @@ class UrlAnalyzer:
         raw_ip = _is_raw_ip(original_domain) or _is_raw_ip(final_domain)
         general_download = triggers_download and not executable_url
 
-        # Scoring
-        rating = BASE_RATING
         strikes = 0
-
-        # Rule A: Immediate Danger - override rating to minimum
         if blacklisted_original or blacklisted_final or executable_url:
             rating = MIN_RATING
         else:
@@ -197,7 +190,6 @@ class UrlAnalyzer:
                 strikes += 1
             rating = max(MIN_RATING, BASE_RATING - strikes)
 
-        # Verdict
         if rating >= 4:
             recommendation = 'Safe'
         elif rating == 3:
