@@ -1,12 +1,12 @@
 """
-url_cache.py is a file to initialize and handle the url cache databse
+url_cache.py handles the initialization and management of the URL analysis cache database.
 """
 
 # Imports - Default Libraries
-import sqlite3
-import threading
 import json
 import os
+import sqlite3
+import threading
 from pathlib import Path
 
 # Imports - Internal Modules
@@ -16,7 +16,7 @@ from server.user_db import DatabaseError
 DEFAULT_CACHE_DB_PATH = os.getenv('SURFCRYPT_CACHE_DB', './data/url_cache.db')
 
 
-# CahceDatabaseManager Class
+# CacheDatabaseManager Class
 class CacheDatabaseManager:
     """Class to manage URL analysis cache database operations"""
     def __init__(self, db_path=DEFAULT_CACHE_DB_PATH):
@@ -76,10 +76,10 @@ class CacheDatabaseManager:
             else:
                 cursor.execute(query)
 
-            if fetch == "one":
+            if fetch == 'one':
                 result = cursor.fetchone()
                 return self._row_to_dict(result)
-            elif fetch == "all":
+            elif fetch == 'all':
                 return [self._row_to_dict(row) for row in cursor.fetchall()]
             else:
                 return None

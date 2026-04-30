@@ -1,19 +1,26 @@
 """
-gui.py is the desktop GUI application built with Tkinter.
-Implements LoginFrame, DashboardFrame, and SecretModal, all orchestrated by MainApplication
+gui_client.py is the main desktop GUI application entry point for SurfCrypt.
 """
+
 
 # Imports - Default Libraries
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import (
+    messagebox,
+    ttk,
+)
+
+
+# Imports - External Libraries
+
 
 # Imports - Internal Modules
-from client.network import NetworkClient
-from client.identity import IdentityManager
 from client.gui_analyzer import AnalyzerFrame
 from client.gui_secrets import SecretModal
-from common.crypto import CryptoError
+from client.identity import IdentityManager
+from client.network import NetworkClient
 from client.util import _decrypt_secret_row, _is_session_error
+from common.crypto import CryptoError
 
 # Constants - Window
 WINDOW_TITLE = 'SurfCrypt'
@@ -110,7 +117,7 @@ class MainApplication:
             'Session Expired',
             'Your session has expired. Please log in again.'
         )
-        self.frames["LoginFrame"].set_status('')
+        self.frames['LoginFrame'].set_status('')
         self.show_frame('LoginFrame')
 
     def run(self):
@@ -424,7 +431,7 @@ class DashboardFrame(ttk.Frame):
         if not secret_id:
             messagebox.showinfo('No Selection', 'Please select a secret first.')
             return
-        self._copy_to_clipboard(self.decrypted_secrets[secret_id]["username"])
+        self._copy_to_clipboard(self.decrypted_secrets[secret_id]['username'])
         self._status_var.set('Username copied to clipboard.')
 
     def _on_copy_password(self):
@@ -432,7 +439,7 @@ class DashboardFrame(ttk.Frame):
         if not secret_id:
             messagebox.showinfo('No Selection', 'Please select a secret first.')
             return
-        self._copy_to_clipboard(self.decrypted_secrets[secret_id]["password"])
+        self._copy_to_clipboard(self.decrypted_secrets[secret_id]['password'])
         self._status_var.set('Password copied to clipboard.')
 
     def _copy_to_clipboard(self, text):

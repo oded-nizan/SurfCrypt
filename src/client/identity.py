@@ -1,17 +1,22 @@
-"""identity.py contains all client-side authentication and session state and handles registration, login, and logout
-using the Envelope Encryption model. No plaintext passwords are ever transmitted to the server"""
+"""
+identity.py manages client-side authentication, session state, and the Envelope Encryption workflow.
+"""
 
 # Imports - Internal Modules
-from client.network import NetworkClient, NetworkError, ServerError
+from client.network import (
+    NetworkClient,
+    NetworkError,
+    ServerError,
+)
 from common.crypto import (
-    generate_vault_key,
-    generate_salt,
-    derive_kek,
-    derive_auth_hash,
-    wrap_vault_key,
-    unwrap_vault_key,
     DecryptionError,
     KeyDerivationError,
+    derive_auth_hash,
+    derive_kek,
+    generate_salt,
+    generate_vault_key,
+    unwrap_vault_key,
+    wrap_vault_key,
 )
 
 
@@ -96,10 +101,11 @@ class IdentityManager:
             raise AuthenticationError(f'Key derivation failed: {e}') from e
 
         try:
-            login_response = self.network.send_request('login', {
+            payload = {
                 'username': username,
                 'auth_hash': auth_hash,
-            })
+            }
+            login_response = self.network.send_request('login', payload)
         except ServerError as e:
             raise AuthenticationError(f'Login rejected by server: {e}') from e
         except NetworkError as e:
@@ -121,7 +127,7 @@ class IdentityManager:
             # Tampered or corrupted wrapped key - should not normally occur post-auth
             raise AuthenticationError(f'Failed to unwrap VaultKey: {e}') from e
         finally:
-            password = None  # noqa: F841
+            del password
 
         self.session_token = response_data['session_token']
         self.vault_key = vault_key
@@ -182,7 +188,7 @@ class IdentityManager:
         except (KeyDerivationError, Exception) as e:
             raise AuthenticationError(f'Failed to change password: {e}') from e
         finally:
-            old_password = None  # noqa: F841
-            new_password = None  # noqa: F841
+            del old_password
+            del new_password
 
         return True

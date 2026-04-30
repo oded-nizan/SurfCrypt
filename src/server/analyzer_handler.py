@@ -1,5 +1,5 @@
 """
-analyzer_handler.py is a file managing interactions between the server and the analyzer.py functionalities
+analyzer_handler.py manages interactions between the server and the analyzer module.
 """
 
 # Imports - Default Libraries
@@ -9,7 +9,7 @@ import json
 from server.user_db import DatabaseError
 
 
-# External Methods
+# Internal Functions - Analysis Handlers
 def handle_get_url_analysis(db, data, success_builder, error_builder):
     """Retrieve cached URL analysis from database; returns not_found if cache miss"""
     url = data.get('url')

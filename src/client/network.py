@@ -1,6 +1,6 @@
 """
 network.py handles all TCP/TLS socket communication with the server and Implements stateless per-request
-connections with a 4-byte length-prefixed JSON protocol
+connections with a 4-byte length-prefixed JSON protocol.
 """
 
 # Imports - Default Libraries
@@ -8,9 +8,13 @@ import socket
 import ssl
 
 # Imports - Internal Modules
-from common.protocol import send_message, recv_message
+from common.protocol import (
+    recv_message,
+    send_message,
+)
 
-# Constants - server
+
+# Constants - Server
 DEFAULT_HOST = '127.0.0.1'
 DEFAULT_PORT = 8443
 

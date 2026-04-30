@@ -2,13 +2,22 @@
 gui_secrets.py defines the SecretModal popup of the GUI separately to relieve pressure from gui_client.py
 """
 
+
 # Imports - Default Libraries
 import tkinter as tk
 from tkinter import ttk
 
+
+# Imports - External Libraries
+
+
 # Imports - Internal Modules
-from common.crypto import encrypt_field, CryptoError, generate_password
 from client.util import _is_session_error
+from common.crypto import (
+    CryptoError,
+    encrypt_field,
+    generate_password,
+)
 
 
 # SecretModal Class
@@ -32,7 +41,7 @@ class SecretModal(tk.Toplevel):
         self.secret_id = secret_id
         self.prefill = prefill or {}
 
-        self.title("Add Secret" if mode == "add" else "Edit Secret")
+        self.title('Add Secret' if mode == 'add' else 'Edit Secret')
         self.resizable(False, False)
         self.grab_set()             # Block interaction with parent while open
 
@@ -132,10 +141,10 @@ class SecretModal(tk.Toplevel):
             return
 
         if self.mode == 'edit':
-            payload["secret_id"] = int(self.secret_id)
-            action = "update_secret"
+            payload['secret_id'] = int(self.secret_id)
+            action = 'update_secret'
         else:
-            action = "save_secret"
+            action = 'save_secret'
 
         try:
             self.controller.network_client.send_request(action, payload, im.session_token)

@@ -1,18 +1,25 @@
 """
 protocol.py is a common message framing logic for client-server communication.
-Implements a 4-byte big-endian length-prefixed JSON protocol over strict TCP
 """
 
-# Import - Default Libraries
+
+# Imports - Default Libraries
 import json
 import struct
 
-# Constants
+
+# Imports - External Libraries
+
+
+# Imports - Internal Modules
+
+
+# Constants - Protocol
 MSG_LENGTH_PREFIX_SIZE = 4
 MAX_PAYLOAD_SIZE = 10 * 1024 * 1024  # 10 MB limit to prevent out-of-memory attacks
 
 
-# Methods - Internal
+# Internal Functions - Framing
 def _recv_exact(sock, n):
     """Read exactly n bytes from socket; returns bytes or None on safe disconnect"""
     data = b''
@@ -24,7 +31,7 @@ def _recv_exact(sock, n):
     return data
 
 
-# Methods - External
+# Internal Functions - Messaging
 def recv_message(sock):
     """Read a length-prefixed JSON message; returns dict or None on safe disconnect"""
     raw_len = _recv_exact(sock, MSG_LENGTH_PREFIX_SIZE)

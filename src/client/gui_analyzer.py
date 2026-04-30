@@ -1,10 +1,15 @@
 """
-gui_analyzer.py defines the url analyzer window of the GUI separately to relive pressure from gui_client.py
+gui_analyzer.py defines the url analyzer window of the GUI separately to relieve pressure from gui_client.py
 """
+
 
 # Imports - Default Libraries
 import tkinter as tk
 from tkinter import ttk
+
+
+# Imports - External Libraries
+
 
 # Imports - Internal Modules
 from common.analyzer import UrlAnalyzer

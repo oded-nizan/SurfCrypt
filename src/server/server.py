@@ -1,28 +1,43 @@
-"""server.py is a file responsible for the server networking: TCP/TLS communication, sessions management,
-and interfacing with database.py"""
+"""
+server.py provides the TCP/TLS network listener, request dispatching, and session management.
+"""
 
 # Imports - Default Libraries
+from datetime import (
+    UTC,
+    datetime,
+    timedelta,
+)
+
 import hmac
 import os
 import socket
 import ssl
 import threading
-from datetime import datetime, timedelta, UTC
 
 # Imports - Internal Modules
 from common.crypto import generate_salt, generate_session_token
+
 from common.protocol import recv_message, send_message
-from server.analyzer_handler import handle_get_url_analysis, handle_cache_url_analysis
+
+from server.analyzer_handler import (
+    handle_cache_url_analysis,
+    handle_get_url_analysis,
+)
+
 from server.user_db import DatabaseError, UserExistsError
+
 
 # Constants - Server
 DEFAULT_HOST = os.getenv('SURFCRYPT_HOST', '0.0.0.0')
 DEFAULT_PORT = int(os.getenv('SURFCRYPT_PORT', 8443))
 
+
 # Constants - Security
 SESSION_TIMEOUT_MINUTES = 15
 MAX_LOGIN_ATTEMPTS = 5
 LOCKOUT_MINUTES = 10
+
 
 # Constants - Response Status
 STATUS_SUCCESS = 'success'
@@ -281,7 +296,14 @@ class SessionServer:
             return self._error('Invalid request data')
 
         try:
-            user_id = self.db.create_user(username, auth_hash, wrapped_vault_key, kek_salt, auth_salt, nonce_wvk,)
+            user_id = self.db.create_user(
+                username,
+                auth_hash,
+                wrapped_vault_key,
+                kek_salt,
+                auth_salt,
+                nonce_wvk,
+            )
             return self._success({'user_id': user_id})
         except UserExistsError:
             return self._error('Username already exists')
@@ -329,8 +351,15 @@ class SessionServer:
         session_token = generate_session_token()
         expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(minutes=SESSION_TIMEOUT_MINUTES)
         
-        self.db.create_session(user_id, session_token, expires_at,)
-        self.db.delete_other_sessions(user_id, session_token,)
+        self.db.create_session(
+            user_id,
+            session_token,
+            expires_at,
+        )
+        self.db.delete_other_sessions(
+            user_id,
+            session_token,
+        )
 
         # Retrieve sensitive vault data only after successful login
         vault_data = self.db.get_user_vault_data(user_id)
@@ -423,7 +452,11 @@ class SessionServer:
             return self._error('Invalid request data')
 
         try:
-            secret_id = self.db.create_secret(user_id, encrypted_fields, nonces,)
+            secret_id = self.db.create_secret(
+                user_id,
+                encrypted_fields,
+                nonces,
+            )
             return self._success({'secret_id': secret_id})
         except DatabaseError:
             return self._error('Failed to save secret')
@@ -459,7 +492,11 @@ class SessionServer:
             return self._error('Invalid request data')
 
         try:
-            updated = self.db.update_secret(secret_id, encrypted_fields, nonces,)
+            updated = self.db.update_secret(
+                secret_id,
+                encrypted_fields,
+                nonces,
+            )
             return self._success({'updated': updated})
         except DatabaseError:
             return self._error('Failed to update secret')
@@ -476,7 +513,7 @@ class SessionServer:
             return self._error('Permission denied')
 
         try:
-            deleted = self.db.delete_secret(secret_id,)
+            deleted = self.db.delete_secret(secret_id)
             return self._success({'deleted': deleted})
         except DatabaseError:
             return self._error('Failed to delete secret')

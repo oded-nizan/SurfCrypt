@@ -1,7 +1,22 @@
+"""
+util.py provides client-side utility functions for decryption and session management.
+"""
+
+
+# Imports - Internal Modules
 from common.crypto import decrypt_field
 
-_SESSION_ERROR_KEYWORDS = ('session', 'unauthorized', 'invalid token', 'expired')
 
+# Constants - Session
+_SESSION_ERROR_KEYWORDS = (
+    'session',
+    'unauthorized',
+    'invalid token',
+    'expired',
+)
+
+
+# Internal Functions - Decryption
 def _decrypt_secret_row(row, vault_key):
     """
     Decrypt all five credential fields from a server row dict.

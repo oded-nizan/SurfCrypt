@@ -5,25 +5,24 @@ Encryption Model
 
 # Imports - Default Libraries
 import base64
-import secrets
-import string
 import datetime
 import os
+import secrets
+import string
 
 # Imports - External Libraries
-from argon2 import Type
 import argon2.low_level
+from argon2 import Type
 
 from cryptography import x509
-from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 
-import nacl.secret
-import nacl.public
-import nacl.utils
 import nacl.exceptions
+import nacl.public
+import nacl.secret
+import nacl.utils
 
 # Constants - General Cryptography
 SALT_LENGTH = 16
@@ -35,6 +34,7 @@ SESSION_TOKEN_BYTES = 32
 DEFAULT_PASSWORD_LENGTH = 16
 MIN_PASSWORD_LENGTH = 8
 MAX_PASSWORD_LENGTH = 128
+
 
 # Constants - KDF
 KDF_TIME_COST = 3
@@ -126,7 +126,7 @@ def wrap_vault_key(vault_key, kek):
         ciphertext = wrapped.ciphertext
         return ciphertext, nonce
     except Exception as e:
-        raise CryptoError(f"Failed to wrap VaultKey: {e}") from e
+        raise CryptoError(f'Failed to wrap VaultKey: {e}') from e
 
 
 def unwrap_vault_key(wrapped_vault_key, kek, nonce):
@@ -172,16 +172,7 @@ def decrypt_field(ciphertext, vault_key, nonce):
 # Internal Functions - Password Generation
 def generate_password(length=DEFAULT_PASSWORD_LENGTH, uppercase=True, lowercase=True,
                       digits=True, symbols=True):
-    """
-    Generate a cryptographically secure random password using the secrets module.
-
-    Parameters:
-        length:    Password length (clamped to MIN/MAX constants)
-        uppercase: Include A-Z
-        lowercase: Include a-z
-        digits:    Include 0-9
-        symbols:   Include punctuation characters
-    """
+    """Generate a cryptographically secure random password using the secrets module"""
     length = max(MIN_PASSWORD_LENGTH, min(length, MAX_PASSWORD_LENGTH))
 
     alphabet = ''
@@ -240,12 +231,12 @@ def generate_self_signed_cert(cert_path, key_path):
         now + datetime.timedelta(days=365)
     ).sign(key, hashes.SHA256())
 
-    with open(key_path, "wb") as f:
+    with open(key_path, 'wb') as f:
         f.write(key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.TraditionalOpenSSL,
-            encryption_algorithm=serialization.NoEncryption()
+            encryption_algorithm=serialization.NoEncryption(),
         ))
 
-    with open(cert_path, "wb") as f:
+    with open(cert_path, 'wb') as f:
         f.write(cert.public_bytes(serialization.Encoding.PEM))

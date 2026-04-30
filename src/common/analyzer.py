@@ -1,20 +1,24 @@
 """
-analyzer.py is the URL threat analysis engine. It takes a raw URL and returns a
-security verdict: a 1-5 rating and a Safe / Caution / Danger recommendation.
+analyzer.py is the URL threat analysis engine for SurfCrypt. Its main goal is to evaluate a raw URL 
+and return a security verdict (1-5 rating plus Safe/Warning/Danger).
 """
 
 # Imports - Default Libraries
-import re
 from pathlib import Path
 
+import re
+
 # Imports - External Libraries
-import requests
 from urllib.parse import urlparse
+
+import requests
+
 
 # Constants - Paths
 _RESOURCES = Path(__file__).resolve().parent.parent.parent / 'resources'
 BLACKLIST_PATH = _RESOURCES / 'malicious_domains.txt'
 SHORTENERS_PATH = _RESOURCES / 'shorteners.txt'
+
 
 # Constants - Network
 REQUEST_TIMEOUT = 5
@@ -24,10 +28,12 @@ USER_AGENT = (
     'Chrome/124.0.0.0 Safari/537.36'
 )
 
+
 # Constants - Scoring
 BASE_RATING = 5
 MIN_RATING = 1
 MAX_SUBDOMAIN_COUNT = 3
+
 
 # Constants - Detection
 EXECUTABLE_EXTENSIONS = {'.exe', '.bat', '.msi', '.apk', '.scr'}

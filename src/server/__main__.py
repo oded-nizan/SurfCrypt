@@ -1,5 +1,5 @@
 """
-SurfCrypt Server Entry Point
+__main__.py is the primary entry point for starting the SurfCrypt server.
 """
 
 # Imports - Default Libraries
@@ -10,13 +10,18 @@ from pathlib import Path
 # Ensure src is in path for internal module imports
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+
 # Imports - External Libraries
 from dotenv import load_dotenv
 
 # Imports - Internal Modules
-from server.user_db import UserDatabaseManager
+from server.server import (
+    DEFAULT_HOST,
+    DEFAULT_PORT,
+    SessionServer,
+)
 from server.url_cache import CacheDatabaseManager
-from server.server import SessionServer, DEFAULT_HOST, DEFAULT_PORT
+from server.user_db import UserDatabaseManager
 
 
 def main():
@@ -32,13 +37,13 @@ def main():
 
     # Automatically generate self-signed certs if they do not exist
     if not os.path.exists(cert_path) or not os.path.exists(key_path):
-        print("TLS Certificates not found. Auto-generating secure self-signed certificates...")
+        print('TLS Certificates not found. Auto-generating secure self-signed certificates...')
         try:
             from common.crypto import generate_self_signed_cert
             generate_self_signed_cert(cert_path, key_path)
-            print(f"Certificates generated at:\n- {cert_path}\n- {key_path}")
+            print(f'Certificates generated at:\n- {cert_path}\n- {key_path}')
         except Exception as e:
-            print(f"Failed to generate certificates: {e}")
+            print(f'Failed to generate certificates: {e}')
             cert_path = None
             key_path = None
 

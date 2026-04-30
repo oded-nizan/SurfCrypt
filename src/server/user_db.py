@@ -1,13 +1,13 @@
 """
-database.py is a file binding all database operations. Its main goal is to manage the database
+user_db.py manages the SQLite persistence layer for users, secrets, and sessions.
 """
 
 # Imports - Default Libraries
+import os
 import sqlite3
 import threading
-import json
-import os
 from pathlib import Path
+
 
 # Constants
 DEFAULT_DB_PATH = os.getenv('SURFCRYPT_DB', './data/surfcrypt.db')
@@ -52,7 +52,7 @@ class UserDatabaseManager:
                 schema_script = file.read()
             self.conn.executescript(schema_script)
             self.conn.commit()
-            print('Successfully initialized the database schema')
+            print('Successfully initialized the user database schema')
 
         except FileNotFoundError:
             print(f'Error: Could not find the schema file at {schema_path}')
@@ -88,10 +88,10 @@ class UserDatabaseManager:
             else:
                 cursor.execute(query)
 
-            if fetch == "one":
+            if fetch == 'one':
                 result = cursor.fetchone()
                 return self._row_to_dict(result)
-            elif fetch == "all":
+            elif fetch == 'all':
                 return [self._row_to_dict(row) for row in cursor.fetchall()]
             else:
                 return None
@@ -165,19 +165,19 @@ class UserDatabaseManager:
 
     def get_user_auth_salt(self, username):
         """Retrieve only the auth_salt for a username"""
-        query = "SELECT auth_salt FROM users WHERE username = ?"
+        query = 'SELECT auth_salt FROM users WHERE username = ?'
         result = self._execute_query(query, (username,), fetch='one')
-        return result["auth_salt"] if result else None
+        return result['auth_salt'] if result else None
 
     def get_user_auth_data(self, username):
         """Retrieve ID and auth_hash for initial login verification"""
-        query = "SELECT id, auth_hash FROM users WHERE username = ?"
+        query = 'SELECT id, auth_hash FROM users WHERE username = ?'
         result = self._execute_query(query, (username,), fetch='one')
         return result
 
     def get_user_vault_data(self, user_id):
         """Retrieve sensitive vault keys and nonces after successful authentication"""
-        query = "SELECT wrapped_vault_key, kek_salt, nonce_wvk FROM users WHERE id = ?"
+        query = 'SELECT wrapped_vault_key, kek_salt, nonce_wvk FROM users WHERE id = ?'
         return self._execute_query(query, (user_id,), fetch='one')
 
     # -Update
@@ -210,11 +210,11 @@ class UserDatabaseManager:
     # -Delete
     def delete_user(self, user_id):
         """Delete a user account permanently; returns success status"""
-        query = "DELETE FROM users WHERE id = ?"
+        query = 'DELETE FROM users WHERE id = ?'
         try:
             with self._write_lock:
                 cursor = self.conn.cursor()
-                cursor.execute(query, (user_id,),)
+                cursor.execute(query, (user_id,))
                 deleted = cursor.rowcount > 0
                 self._commit()
                 if deleted:
@@ -244,16 +244,16 @@ class UserDatabaseManager:
                     query,
                     (
                         user_id,
-                        encrypted_fields["name_encrypted"],
-                        encrypted_fields["url_encrypted"],
-                        encrypted_fields["username_encrypted"],
-                        encrypted_fields["password_encrypted"],
-                        encrypted_fields["notes_encrypted"],
-                        nonces["nonce_name"],
-                        nonces["nonce_url"],
-                        nonces["nonce_username"],
-                        nonces["nonce_password"],
-                        nonces["nonce_notes"],
+                        encrypted_fields['name_encrypted'],
+                        encrypted_fields['url_encrypted'],
+                        encrypted_fields['username_encrypted'],
+                        encrypted_fields['password_encrypted'],
+                        encrypted_fields['notes_encrypted'],
+                        nonces['nonce_name'],
+                        nonces['nonce_url'],
+                        nonces['nonce_username'],
+                        nonces['nonce_password'],
+                        nonces['nonce_notes'],
                     ),
                 )
                 secret_id = cursor.lastrowid
@@ -295,9 +295,9 @@ class UserDatabaseManager:
 
     def count_secrets_by_user(self, user_id):
         """Count total secrets for a user"""
-        query = "SELECT COUNT(*) as count FROM secrets WHERE user_id = ?"
+        query = 'SELECT COUNT(*) as count FROM secrets WHERE user_id = ?'
         result = self._execute_query(query, (user_id,), fetch='one')
-        return result["count"] if result else 0
+        return result['count'] if result else 0
 
     def get_secret_by_id(self, secret_id):
         """Retrieve a secret by ID"""
@@ -312,9 +312,9 @@ class UserDatabaseManager:
 
     def get_secret_owner(self, secret_id: int):
         """Get the owner user ID of a secret"""
-        query = "SELECT user_id FROM secrets WHERE id = ?"
+        query = 'SELECT user_id FROM secrets WHERE id = ?'
         result = self._execute_query(query, (secret_id,), fetch='one')
-        return result["user_id"] if result else None
+        return result['user_id'] if result else None
 
     # -Update
     def update_secret(self, secret_id, encrypted_fields, nonces):
@@ -340,16 +340,16 @@ class UserDatabaseManager:
                 cursor.execute(
                     query,
                     (
-                        encrypted_fields["name_encrypted"],
-                        encrypted_fields["url_encrypted"],
-                        encrypted_fields["username_encrypted"],
-                        encrypted_fields["password_encrypted"],
-                        encrypted_fields["notes_encrypted"],
-                        nonces["nonce_name"],
-                        nonces["nonce_url"],
-                        nonces["nonce_username"],
-                        nonces["nonce_password"],
-                        nonces["nonce_notes"],
+                        encrypted_fields['name_encrypted'],
+                        encrypted_fields['url_encrypted'],
+                        encrypted_fields['username_encrypted'],
+                        encrypted_fields['password_encrypted'],
+                        encrypted_fields['notes_encrypted'],
+                        nonces['nonce_name'],
+                        nonces['nonce_url'],
+                        nonces['nonce_username'],
+                        nonces['nonce_password'],
+                        nonces['nonce_notes'],
                         secret_id,
                     ),
                 )
@@ -364,7 +364,7 @@ class UserDatabaseManager:
     # -Delete
     def delete_secret(self, secret_id):
         """Delete a secret; returns success status"""
-        query = "DELETE FROM secrets WHERE id = ?"
+        query = 'DELETE FROM secrets WHERE id = ?'
         try:
             with self._write_lock:
                 cursor = self.conn.cursor()
@@ -388,7 +388,14 @@ class UserDatabaseManager:
         try:
             with self._write_lock:
                 cursor = self.conn.cursor()
-                cursor.execute(query, (user_id, session_token, expires_at.strftime('%Y-%m-%d %H:%M:%S'),),)
+                cursor.execute(
+                    query,
+                    (
+                        user_id,
+                        session_token,
+                        expires_at.strftime('%Y-%m-%d %H:%M:%S'),
+                    ),
+                )
                 session_id = cursor.lastrowid
                 self._commit()
                 # logger.info(f'Session created for user {user_id}')
@@ -430,7 +437,7 @@ class UserDatabaseManager:
     # -Delete
     def delete_session(self, session_token):
         """Delete a session"""
-        query = "DELETE FROM sessions WHERE session_token = ?"
+        query = 'DELETE FROM sessions WHERE session_token = ?'
         try:
             with self._write_lock:
                 cursor = self.conn.cursor()
@@ -445,7 +452,7 @@ class UserDatabaseManager:
 
     def delete_user_sessions(self, user_id):
         """Delete all sessions for a user"""
-        query = "DELETE FROM sessions WHERE user_id = ?"
+        query = 'DELETE FROM sessions WHERE user_id = ?'
         try:
             with self._write_lock:
                 cursor = self.conn.cursor()
@@ -461,7 +468,7 @@ class UserDatabaseManager:
 
     def delete_other_sessions(self, user_id, keep_session_token):
         """Delete all sessions for a user EXCEPT the specified one"""
-        query = "DELETE FROM sessions WHERE user_id = ? AND session_token != ?"
+        query = 'DELETE FROM sessions WHERE user_id = ? AND session_token != ?'
         try:
             with self._write_lock:
                 cursor = self.conn.cursor()
