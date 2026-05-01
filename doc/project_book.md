@@ -977,21 +977,28 @@ Integration tests exercise complete workflows against an in-memory test database
 During Phase 2, the focus shifted from core cryptographic plumbing to user experience, performance, and URL analyzer robustness. The following key features and fixes were implemented:
 
 ### 11.1 Streamlined Authentication
-- **Auto-Login:** Users are automatically authenticated and redirected to their vault immediately after a successful registration. This removes the friction of requiring users to re-enter their newly created credentials.
+- **Auto-Login:** Users are automatically authenticated and redirected to their vault immediately after a successful registration. This removes the friction of requiring users to re-enter their newly created credentials. This aligns with **NIST SP 800-63B** guidelines on reducing user friction to encourage the adoption of secure authentication practices, specifically the use of password managers.
 - **Session Expiry Handling:** A robust mechanism ensures that when an authenticated session expires or is invalidated, the client gracefully returns to the login screen and notifies the user instead of failing silently.
 
 ### 11.2 URL Analyzer Enhancements
-- **Shortened URL Detection:** The analyzer proactively detects URL shorteners (e.g., bit.ly, tinyurl) and transparently expands them via HEAD requests before analysis. This prevents shorteners from bypassing malicious domain checks.
-- **Cache Normalization:** URLs are fully normalized (stripping fragments, enforcing `http/https` protocols, converting hostnames to lowercase) before querying the `url_history` table. This ensures that variations of the same URL (`github.com/` vs `https://github.com`) yield cache hits, reducing redundant network activity.
+- **Shortened URL Detection:** The analyzer proactively detects URL shorteners (e.g., bit.ly, tinyurl) by evaluating the base domain against a known shortener dataset, and transparently expands them via redirects before analysis. As noted by the **Anti-Phishing Working Group (APWG)**, attackers frequently use URL shorteners to obfuscate malicious destinations and bypass basic domain-matching filters. Expanding the URL allows SurfCrypt to evaluate the true final destination.
+- **Cache Normalization:** URLs are fully normalized (stripping `www.`, enforcing `https` protocols, converting hostnames to lowercase) before querying the `url_history` table. This implementation follows **RFC 3986 Section 6.2** on URI Normalization and Comparison. This ensures that variations of the same URL (`example.com` vs `https://www.example.com`) yield cache hits, reducing redundant network activity and preventing cache fragmentation.
 - **UI Simplification:** The analyzer interface was reworked to display only essential information (Verdicts, Rating, Recommendations) by default in large text. Technical details are hidden behind an interactive "Advanced Details" toggle.
 - **Back Navigation:** A dedicated "Back to Vault" button enables fluid navigation between the dashboard and the analyzer.
 
 ### 11.3 Database Indexing
-To support scaling and ensure fast query resolution, indexes were added to frequently accessed columns:
+To support scaling and ensure fast query resolution, indexes were added to frequently accessed columns. Following **SQLite Query Planning** guidelines, indexes turn O(N) full table scans into O(log N) B-Tree lookups:
 - `users(username)` — Accelerates login lookups.
 - `secrets(user_id)` — Speeds up vault fetching.
 - `sessions(session_token)` — Optimizes request authentication.
 - `sessions(expires_at)` — Accelerates the periodic cleanup of expired sessions.
+
+### 11.4 Manual Demo Testing
+In addition to automated `pytest` suites, Phase 2 features were thoroughly validated via manual demonstration testing (documented in `dev/demo_checklist.md`):
+- **Authentication Flow Demo:** Verified registration correctly populates the database and immediately provisions the GUI vault without requiring a manual login step. Tested manual login success/failure and verified session token persistence.
+- **Vault Operations Demo:** Verified secrets can be added, viewed, edited, and deleted via the GUI, observing real-time reflection of changes. Tested search filters and clipboard shortcuts.
+- **Concurrency & Sync Demo:** Used two distinct client windows logged into the same account to verify cross-client synchronization. Verified strict cross-user isolation by creating multiple accounts.
+- **Analyzer & Caching Demo:** Analyzed safe URLs, shortened URLs (verifying successful expansion of domains like `bit.ly/3svvPmV`), and blacklisted URLs. Verified that subsequent analyses of the same URL (even un-normalized inputs) correctly bypass the network and fetch instantaneously from the database cache.
 
 ---
 
@@ -1009,3 +1016,5 @@ To support scaling and ensure fast query resolution, indexes were added to frequ
 6. Python Software Foundation — [threading — Thread-based parallelism](https://docs.python.org/3/library/threading.html)
 7. Python Software Foundation — [tkinter — Python interface to Tcl/Tk](https://docs.python.org/3/library/tkinter.html)
 8. D. Richard Hipp — [SQLite Transactional Guarantees](https://www.sqlite.org/transactional.html)
+9. Tim Berners-Lee, Roy Fielding, Larry Masinter — [RFC 3986: URI Generic Syntax](https://www.rfc-editor.org/rfc/rfc3986) — IETF, January 2005
+10. Paul Grassi, Michael Garcia, James Fenton — [NIST SP 800-63B: Digital Identity Guidelines](https://pages.nist.gov/800-63-3/sp800-63b.html) — NIST, June 2017
