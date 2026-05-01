@@ -3,13 +3,12 @@ __main__.py is the primary entry point for starting the SurfCrypt server.
 """
 
 # Imports - Default Libraries
-import sys
 import os
+import sys
 from pathlib import Path
 
-# Ensure src is in path for internal module imports
+# Path Configuration - ensure src is in path for internal module imports
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
 
 # Imports - External Libraries
 from dotenv import load_dotenv
@@ -24,18 +23,20 @@ from server.url_cache import CacheDatabaseManager
 from server.user_db import UserDatabaseManager
 
 
+# Internal Functions - Entry Point
 def main():
-    load_dotenv() 
+    """Initialize and start the SurfCrypt session server"""
+    load_dotenv()
 
-    print(f'SurfCrypt Server')
+    print('SurfCrypt Server')
     print(f'Binding to {DEFAULT_HOST}:{DEFAULT_PORT}')
 
-    # Path resolution for TLS certificates
+    # Path resolution - locate TLS certificates
     project_root = Path(__file__).resolve().parent.parent.parent
     cert_path = os.getenv('SURFCRYPT_CERT', str(project_root / 'resources' / 'server.crt'))
     key_path = os.getenv('SURFCRYPT_KEY', str(project_root / 'resources' / 'server.key'))
 
-    # Automatically generate self-signed certs if they do not exist
+    # Certificates - automatically generate self-signed certs if missing
     if not os.path.exists(cert_path) or not os.path.exists(key_path):
         print('TLS Certificates not found. Auto-generating secure self-signed certificates...')
         try:
@@ -47,19 +48,26 @@ def main():
             cert_path = None
             key_path = None
 
+    # Database - initialize user and cache managers
     db = UserDatabaseManager()
     cache_db = CacheDatabaseManager()
-    server = SessionServer(db, cache_db, host=DEFAULT_HOST, port=DEFAULT_PORT, cert_path=cert_path, key_path=key_path)
+    server = SessionServer(
+        db,
+        cache_db,
+        host=DEFAULT_HOST,
+        port=DEFAULT_PORT,
+        cert_path=cert_path,
+        key_path=key_path,
+    )
 
-    tls_mode = 'plaintext'
-    if server.ssl_context:
-        tls_mode = 'TLS'
+    tls_mode = 'TLS' if server.ssl_context else 'plaintext'
 
     print(f'Transport: {tls_mode}')
-    print(f'Press Ctrl+C to stop')
+    print('Press Ctrl+C to stop')
     print('-' * 40)
 
     try:
+        # Execution - enter the server loop
         server.start_server()
     except KeyboardInterrupt:
         print('\nShutting down...')

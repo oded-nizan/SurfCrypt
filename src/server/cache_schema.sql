@@ -9,3 +9,6 @@ CREATE TABLE IF NOT EXISTS url_history (
     analysis_data TEXT NOT NULL,
     analyzed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Index for efficient cache pruning based on age
+CREATE INDEX IF NOT EXISTS idx_url_history_analyzed_at ON url_history(analyzed_at);

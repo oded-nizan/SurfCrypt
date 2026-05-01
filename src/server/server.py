@@ -3,17 +3,16 @@ server.py provides the TCP/TLS network listener, request dispatching, and sessio
 """
 
 # Imports - Default Libraries
-from datetime import (
-    UTC,
-    datetime,
-    timedelta,
-)
-
 import hmac
 import os
 import socket
 import ssl
 import threading
+from datetime import (
+    UTC,
+    datetime,
+    timedelta,
+)
 
 # Imports - Internal Modules
 from common.crypto import generate_salt, generate_session_token
@@ -65,6 +64,7 @@ class SessionServer:
     """TCP/TLS server. Accepts connections, dispatches requests, manages sessions"""
 
     def __init__(self, db_manager, cache_db_manager, host=DEFAULT_HOST, port=DEFAULT_PORT, cert_path=None, key_path=None):
+        """Initialize SessionServer with databases and network settings"""
         self.db = db_manager
         self.cache_db = cache_db_manager
         self.host = host
@@ -88,7 +88,14 @@ class SessionServer:
 
     # Lifecycle
     def start_server(self):
-        """Initialise DBs, bind socket, and enter the accept loop (blocking)"""
+        """
+        Initialise DBs, bind socket, and enter the accept loop.
+
+        This is a blocking call that sets up the database schemas, binds the
+        listening socket to the configured host/port, and begins accepting
+        new client connections
+        """
+        # Setup - initialize resources and bind socket
         self.db.init_db()
         self.cache_db.init_db()
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -100,11 +107,8 @@ class SessionServer:
         self._listen()
 
     def start_server_async(self):
-        """
-        Non-blocking variant of start(): bind the socket, then run the accept
-        loop in a daemon thread.  Returns immediately after binding so callers
-        can query bound_port and connect right away
-        """
+        """Non-blocking variant of start; runs accept loop in a daemon thread"""
+        # Setup - initialize resources and bind socket
         self.db.init_db()
         self.cache_db.init_db()
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -112,6 +116,8 @@ class SessionServer:
         self._server_socket.bind((self.host, self.port))
         self._server_socket.listen(5)
         self._running = True
+
+        # Threading - launch the listener thread
         server_thread = threading.Thread(target=self._listen, daemon=True)
         server_thread.start()
 
@@ -142,7 +148,7 @@ class SessionServer:
                 client_socket, addr = self._server_socket.accept()
                 client_thread = threading.Thread(
                     target=self._handle_client,
-                    args=(client_socket, addr,),
+                    args=(client_socket, addr),
                     daemon=True,
                 )
                 client_thread.start()
@@ -153,9 +159,11 @@ class SessionServer:
         """Handle a single client connection; wrap with TLS if configured"""
         # logger.info(f'Connection from {addr}')
         try:
+            # TLS - wrap socket if context is available
             if self._ssl_context:
                 client_socket = self._ssl_context.wrap_socket(client_socket, server_side=True)
             while True:
+                # Communication - receive request and dispatch
                 request = recv_message(client_socket)
                 if request is None:
                     break
@@ -242,7 +250,13 @@ class SessionServer:
 
     # Dispatcher - Routes to handlers
     def _dispatch(self, request):
-        """Route request to the appropriate handler; return response dict"""
+        """
+        Route request to the appropriate handler and return response.
+
+        Separates unauthenticated actions (registration/login) from session-guarded
+        actions. Performs session validation and token extension for all
+        authenticated routes before dispatching to specific handlers
+        """
         action = request.get('action')
         data = request.get('data', {})
 
@@ -284,8 +298,9 @@ class SessionServer:
 
     # Handlers - Auth
     def _handle_register(self, data):
-        """Store client-derived auth credentials and wrapped vault key; return user id"""
+        """Store client-derived auth credentials and wrapped vault key"""
         try:
+            # Input - extract and decode registration material
             username = data['username']
             auth_hash = data['auth_hash']
             wrapped_vault_key = self._decode_bytes(data['wrapped_vault_key'])
@@ -296,6 +311,7 @@ class SessionServer:
             return self._error('Invalid request data')
 
         try:
+            # Database - create user record
             user_id = self.db.create_user(
                 username,
                 auth_hash,
@@ -311,65 +327,68 @@ class SessionServer:
             return self._error('Registration failed')
 
     def _handle_get_auth_salt(self, data):
-        """Return auth_salt for username; return random decoy if user not found (prevents enumeration)"""
+        """Return auth_salt for username; return random decoy if user not found"""
         username = data.get('username', '')
         auth_salt_raw = self.db.get_user_auth_salt(username)
         if auth_salt_raw:
             auth_salt = self._encode_bytes(auth_salt_raw)
         else:
-            # Decoy: same length as a real salt, new random value each call
+            # Decoy - same length as a real salt to prevent enumeration
             auth_salt = self._encode_bytes(generate_salt())
         return self._success({'auth_salt': auth_salt})
 
     def _handle_login(self, data):
-        """
-        Verify client-derived auth_hash; on success create session and return vault data.
-        Rate-limited: 5 failures trigger a 10-min lockout
-        """
+        """Verify auth_hash, create session, and return vault data"""
         try:
+            # Input - extract login credentials
             username = data['username']
             auth_hash_client = data['auth_hash']
         except KeyError:
             return self._error('Invalid request data')
 
         try:
+            # Rate Limiting - check if user is locked out
             self._check_lockout(username)
+
+            # Verification - check credentials
+            auth_data = self.db.get_user_auth_data(username)
+            auth_ok = auth_data and hmac.compare_digest(auth_data['auth_hash'], auth_hash_client)
+
+            if not auth_ok:
+                self._record_failed_login(username)
+                return self._error('Invalid credentials')
+
+            # Session - create new session and invalidate others
+            self._clear_failed_logins(username)
+            user_id = auth_data['id']
+            session_token = generate_session_token()
+            expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(minutes=SESSION_TIMEOUT_MINUTES)
+
+            self.db.create_session(
+                user_id,
+                session_token,
+                expires_at,
+            )
+            self.db.delete_other_sessions(
+                user_id,
+                session_token,
+            )
+
+            # Retrieval - fetch sensitive vault data post-auth
+            vault_data = self.db.get_user_vault_data(user_id)
+
+            return self._success({
+                'session_token': session_token,
+                'wrapped_vault_key': self._encode_bytes(vault_data['wrapped_vault_key']),
+                'kek_salt': self._encode_bytes(vault_data['kek_salt']),
+                'nonce_wvk': self._encode_bytes(vault_data['nonce_wvk']),
+            })
         except AuthenticationError as e:
             return self._error(str(e))
-
-        # Verify credentials with minimal data (id + auth_hash only)
-        auth_data = self.db.get_user_auth_data(username)
-        auth_ok = auth_data and hmac.compare_digest(auth_data['auth_hash'], auth_hash_client)
-
-        if not auth_ok:
-            self._record_failed_login(username)
-            return self._error('Invalid credentials')
-
-        # Authentication success: clean up rate limiting and create session
-        self._clear_failed_logins(username)
-        user_id = auth_data['id']
-        session_token = generate_session_token()
-        expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(minutes=SESSION_TIMEOUT_MINUTES)
-        
-        self.db.create_session(
-            user_id,
-            session_token,
-            expires_at,
-        )
-        self.db.delete_other_sessions(
-            user_id,
-            session_token,
-        )
-
-        # Retrieve sensitive vault data only after successful login
-        vault_data = self.db.get_user_vault_data(user_id)
-
-        return self._success({
-            'session_token': session_token,
-            'wrapped_vault_key': self._encode_bytes(vault_data['wrapped_vault_key']),
-            'kek_salt': self._encode_bytes(vault_data['kek_salt']),
-            'nonce_wvk': self._encode_bytes(vault_data['nonce_wvk']),
-        })
+        finally:
+            # Cleanup - explicitly clear sensitive material
+            if 'auth_hash_client' in locals():
+                del auth_hash_client
 
     def _handle_logout(self, request):
         """Delete the session from the database on explicit logout"""
@@ -379,8 +398,9 @@ class SessionServer:
         return self._success()
 
     def _handle_change_password(self, data, user_id):
-        """Verify old auth_hash, then update all auth material and re-wrapped vault key"""
+        """Verify old auth_hash then update all auth material"""
         try:
+            # Input - extract and decode change material
             old_auth_hash = data['old_auth_hash']
             new_auth_hash = data['new_auth_hash']
             new_wrapped_vault_key = self._decode_bytes(data['new_wrapped_vault_key'])
@@ -390,23 +410,33 @@ class SessionServer:
         except (KeyError, ValueError):
             return self._error('Invalid request data')
 
-        # Verify old credentials before allowing change
-        user = self.db.get_user_by_id(user_id)
-        if not user or not hmac.compare_digest(user['auth_hash'], old_auth_hash):
-            return self._error('Invalid current password')
-
         try:
+            # Verification - check old credentials
+            user = self.db.get_user_by_id(user_id)
+            if not user or not hmac.compare_digest(user['auth_hash'], old_auth_hash):
+                return self._error('Invalid current password')
+
+            # Update - store new credentials and invalidate other sessions
             self.db.update_user_credentials(
-                user_id, new_auth_hash, new_wrapped_vault_key,
-                new_kek_salt, new_auth_salt, new_nonce_wvk
+                user_id,
+                new_auth_hash,
+                new_wrapped_vault_key,
+                new_kek_salt,
+                new_auth_salt,
+                new_nonce_wvk,
             )
-            # Invalidate all sessions except current
             token = data.get('session_token')
             if token:
                 self.db.delete_other_sessions(user_id, token)
             return self._success()
         except DatabaseError:
             return self._error('Failed to update password')
+        finally:
+            # Cleanup - explicitly clear sensitive material
+            if 'old_auth_hash' in locals():
+                del old_auth_hash
+            if 'new_auth_hash' in locals():
+                del new_auth_hash
 
     # Handlers - Secrets
     def _handle_sync_secrets(self, user_id):

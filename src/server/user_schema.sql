@@ -58,3 +58,7 @@ CREATE TABLE IF NOT EXISTS secrets (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     -- a folders table will require a foreign key for folder_id
 );
+
+-- Indexes for performance optimization
+CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_secrets_user_id ON secrets(user_id);

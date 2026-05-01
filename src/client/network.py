@@ -1,6 +1,5 @@
 """
-network.py handles all TCP/TLS socket communication with the server and Implements stateless per-request
-connections with a 4-byte length-prefixed JSON protocol.
+network.py handles all TCP/TLS socket communication with the server.
 """
 
 # Imports - Default Libraries
@@ -8,10 +7,7 @@ import socket
 import ssl
 
 # Imports - Internal Modules
-from common.protocol import (
-    recv_message,
-    send_message,
-)
+from common.protocol import recv_message, send_message
 
 
 # Constants - Server

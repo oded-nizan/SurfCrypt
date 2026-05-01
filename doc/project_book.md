@@ -4,7 +4,7 @@
 > **Project:** SurfCrypt — Secure Password Manager + URL Analyzer  
 > **Language:** Python 3.10+  
 > **Platform:** Desktop (Windows primary, cross-platform compatible)  
-> **Status:** Phase 1 — Core MVP
+> **Status:** Phase 2 — UX Polish & Optimization
 
 ---
 
@@ -43,6 +43,7 @@
 8. [GUI Framework: Tkinter](#8-gui-framework-tkinter)
 9. [Technology Stack Justification Summary](#9-technology-stack-justification-summary)
 10. [Testing Strategy](#10-testing-strategy)
+11. [Phase 2: UX Polish & Optimization](#11-phase-2-ux-polish--optimization)
 
 ---
 
@@ -968,6 +969,33 @@ Integration tests exercise complete workflows against an in-memory test database
 ---
 
 *End of Project Book — Phase 1*
+
+---
+
+## 11. Phase 2: UX Polish & Optimization
+
+During Phase 2, the focus shifted from core cryptographic plumbing to user experience, performance, and URL analyzer robustness. The following key features and fixes were implemented:
+
+### 11.1 Streamlined Authentication
+- **Auto-Login:** Users are automatically authenticated and redirected to their vault immediately after a successful registration. This removes the friction of requiring users to re-enter their newly created credentials.
+- **Session Expiry Handling:** A robust mechanism ensures that when an authenticated session expires or is invalidated, the client gracefully returns to the login screen and notifies the user instead of failing silently.
+
+### 11.2 URL Analyzer Enhancements
+- **Shortened URL Detection:** The analyzer proactively detects URL shorteners (e.g., bit.ly, tinyurl) and transparently expands them via HEAD requests before analysis. This prevents shorteners from bypassing malicious domain checks.
+- **Cache Normalization:** URLs are fully normalized (stripping fragments, enforcing `http/https` protocols, converting hostnames to lowercase) before querying the `url_history` table. This ensures that variations of the same URL (`github.com/` vs `https://github.com`) yield cache hits, reducing redundant network activity.
+- **UI Simplification:** The analyzer interface was reworked to display only essential information (Verdicts, Rating, Recommendations) by default in large text. Technical details are hidden behind an interactive "Advanced Details" toggle.
+- **Back Navigation:** A dedicated "Back to Vault" button enables fluid navigation between the dashboard and the analyzer.
+
+### 11.3 Database Indexing
+To support scaling and ensure fast query resolution, indexes were added to frequently accessed columns:
+- `users(username)` — Accelerates login lookups.
+- `secrets(user_id)` — Speeds up vault fetching.
+- `sessions(session_token)` — Optimizes request authentication.
+- `sessions(expires_at)` — Accelerates the periodic cleanup of expired sessions.
+
+---
+
+*End of Project Book — Phase 2*
 
 ---
 

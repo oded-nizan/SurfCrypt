@@ -12,14 +12,16 @@ from pathlib import Path
 # Imports - Internal Modules
 from server.user_db import DatabaseError
 
-# Constants
-DEFAULT_CACHE_DB_PATH = os.getenv('SURFCRYPT_CACHE_DB', './data/url_cache.db')
+# Constants - Persistence
+DEFAULT_CACHE_DB_PATH = os.getenv('SURFCRYPT_CACHE_DB', './src/data/url_cache.db')
 
 
-# CacheDatabaseManager Class
+# Database Class
 class CacheDatabaseManager:
-    """Class to manage URL analysis cache database operations"""
+    """Manage URL analysis cache database operations"""
+
     def __init__(self, db_path=DEFAULT_CACHE_DB_PATH):
+        """Initialize CacheDatabaseManager with database path and write lock"""
         self.db_path = db_path
         self.conn = None
         self._write_lock = threading.Lock()
@@ -27,6 +29,7 @@ class CacheDatabaseManager:
     def connect(self):
         """Establish the SQLite connection if it doesn't already exist"""
         if self.conn is None:
+            # File system - ensure the data directory exists
             dir_path = os.path.dirname(self.db_path)
             if dir_path:
                 os.makedirs(dir_path, exist_ok=True)
@@ -39,8 +42,9 @@ class CacheDatabaseManager:
         schema_path = Path(__file__).parent / 'cache_schema.sql'
 
         try:
-            with open(schema_path, 'r') as file:
-                schema_script = file.read()
+            # Schema - load and execute SQL script
+            with open(schema_path, 'r', encoding='utf-8') as f:
+                schema_script = f.read()
             self.conn.executescript(schema_script)
             self.conn.commit()
             print('Successfully initialized the cache database schema')
@@ -50,7 +54,7 @@ class CacheDatabaseManager:
             print(f'SQLite Error: {e}')
 
     def disconnect(self):
-        """Close database connection gracefully."""
+        """Close database connection gracefully"""
         if self.conn:
             try:
                 self.conn.close()
@@ -61,7 +65,7 @@ class CacheDatabaseManager:
 
     @staticmethod
     def _row_to_dict(row):
-        """Convert sqlite3.row to dictionary"""
+        """Convert sqlite3.Row to dictionary"""
         return dict(row) if row else None
 
     def _execute_query(self, query, params=None, fetch=None):
@@ -87,18 +91,20 @@ class CacheDatabaseManager:
             self.conn.rollback()
             raise DatabaseError(f'Query execution failed: {e}')
 
-    def _commit(self) -> None:
+    def _commit(self):
+        """Commit the current transaction"""
         if self.conn:
             self.conn.commit()
 
-    def _rollback(self) -> None:
+    def _rollback(self):
+        """Rollback the current transaction"""
         if self.conn:
             self.conn.rollback()
 
     # URL CRUD
     # -Create
     def create_url_analysis(self, url, rating, recommendation, is_shortened, expanded_url, analysis_data):
-        """Store URL analysis result"""
+        """Store URL analysis result; returns analysis id"""
         query = """
             INSERT INTO url_history (url, rating, recommendation, is_shortened,
                                      expanded_url, analysis_data)
@@ -144,7 +150,7 @@ class CacheDatabaseManager:
 
     # -Update
     def update_url_analysis(self, analysis_id, rating, recommendation, expanded_url, analysis_data):
-        """Update existing URL analysis"""
+        """Update existing URL analysis; returns success status"""
         query = """
             UPDATE url_history SET 
                 rating = ?, 
@@ -176,7 +182,7 @@ class CacheDatabaseManager:
 
     # -Delete
     def delete_url_analysis(self, analysis_id):
-        """Delete specific analysis from cache"""
+        """Delete specific analysis from cache; returns success status"""
         query = "DELETE FROM url_history WHERE id = ?"
         try:
             with self._write_lock:
@@ -190,7 +196,7 @@ class CacheDatabaseManager:
             raise DatabaseError(f'Failed to delete URL analysis: {e}')
 
     def delete_old_cache(self, days=30):
-        """Prune analysis entries older than specified days"""
+        """Prune analysis entries older than specified days; returns count"""
         query = "DELETE FROM url_history WHERE analyzed_at < datetime('now', ?)"
         try:
             with self._write_lock:

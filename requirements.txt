@@ -5,6 +5,8 @@ cryptography==47.0.0 # High-level recipes and low-level primitives for crypto.
 PyNaCl==1.6.2 # Python binding to Networking and Cryptography library.
 cffi==2.0.0 # C Foreign Function Interface for calling C code.
 pycparser==3.0 # C parser in Python for CFFI.
+six==1.17.0 # Python 2 and 3 compatibility library.
+srp==1.0.22 # Secure Remote Password (SRP) protocol implementation.
 
 # --- NETWORKING & HTTP ---
 requests==2.33.1 # Simple and elegant HTTP library for humans.

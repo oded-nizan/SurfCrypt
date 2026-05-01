@@ -1,26 +1,25 @@
 """
-analyzer.py is the URL threat analysis engine for SurfCrypt. Its main goal is to evaluate a raw URL 
-and return a security verdict (1-5 rating plus Safe/Warning/Danger).
+analyzer.py is the URL threat analysis engine for SurfCrypt.
 """
 
 # Imports - Default Libraries
-from pathlib import Path
-
 import re
-
-# Imports - External Libraries
+from pathlib import Path
 from urllib.parse import urlparse
 
+# Imports - External Libraries
 import requests
 
+# Imports - Internal Modules
 
-# Constants - Paths
+
+# Constants - File Paths
 _RESOURCES = Path(__file__).resolve().parent.parent.parent / 'resources'
 BLACKLIST_PATH = _RESOURCES / 'malicious_domains.txt'
 SHORTENERS_PATH = _RESOURCES / 'shorteners.txt'
 
 
-# Constants - Network
+# Constants - Network Config
 REQUEST_TIMEOUT = 5
 USER_AGENT = (
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
@@ -29,13 +28,13 @@ USER_AGENT = (
 )
 
 
-# Constants - Scoring
+# Constants - Scoring Logic
 BASE_RATING = 5
 MIN_RATING = 1
 MAX_SUBDOMAIN_COUNT = 3
 
 
-# Constants - Detection
+# Constants - Detection Patterns
 EXECUTABLE_EXTENSIONS = {'.exe', '.bat', '.msi', '.apk', '.scr'}
 DOWNLOAD_CONTENT_TYPES = {
     'application/octet-stream',
@@ -48,15 +47,13 @@ DOWNLOAD_CONTENT_TYPES = {
 # Custom Exceptions
 class AnalyzerError(Exception):
     """Base exception for URL analysis operations"""
-    pass
 
 
 class BlacklistLoadError(AnalyzerError):
     """Raised when blacklist file cannot be loaded"""
-    pass
 
 
-# Internal Functions - Domain Utilities
+# Internal Functions - Domain Logic
 def _extract_domain(url):
     """Extract lowercase hostname from a URL string"""
     hostname = urlparse(url).hostname
@@ -64,12 +61,12 @@ def _extract_domain(url):
 
 
 def _is_raw_ip(domain):
-    """Return True if domain is a raw IPv4 address rather than a hostname"""
+    """Check if domain is a raw IPv4 address"""
     return bool(re.match(r'^\d{1,3}(\.\d{1,3}){3}$', domain))
 
 
 def _count_subdomains(domain):
-    """Count subdomains; e.g. a.b.c.example.com -> 3 subdomains"""
+    """Count subdomains in a given hostname"""
     if not domain or _is_raw_ip(domain):
         return 0
     parts = domain.split('.')
@@ -77,25 +74,32 @@ def _count_subdomains(domain):
 
 
 def _is_blacklisted(domain, blacklist):
-    """Check domain and all parent domains against blacklist set"""
+    """Check domain hierarchy against blacklist set"""
     if not domain:
         return False
     parts = domain.split('.')
-    # Walk from full domain up to registrable domain (e.g. sub.evil.com -> evil.com)
     for i in range(len(parts) - 1):
         if '.'.join(parts[i:]) in blacklist:
             return True
     return False
 
 
+def _is_shortened(target_domain, shorteners):
+    """Check domain against known link shorteners"""
+    if not target_domain:
+        return False
+    domain = target_domain.split('/')[0]
+    return domain in shorteners
+
+
 def _has_executable_extension(url):
-    """Return True if URL path ends with a known executable extension"""
+    """Check if URL path ends with executable extension"""
     path = urlparse(url).path.lower()
     return any(path.endswith(ext) for ext in EXECUTABLE_EXTENSIONS)
 
 
 def _check_download_headers(response):
-    """Return True if response headers indicate an unprompted file download"""
+    """Detect unprompted file download from response headers"""
     content_disposition = response.headers.get('Content-Disposition', '')
     content_type = response.headers.get('Content-Type', '').split(';')[0].strip().lower()
     return 'attachment' in content_disposition or content_type in DOWNLOAD_CONTENT_TYPES
@@ -103,7 +107,7 @@ def _check_download_headers(response):
 
 # Internal Functions - Resource Loading
 def _load_domains_file(path, label):
-    """Read a domain list file and return a lowercase set; warn and degrade gracefully on failure"""
+    """Read domain list file and return lowercase set"""
     try:
         domains = set()
         with open(path, 'r', encoding='utf-8') as f:
@@ -113,39 +117,55 @@ def _load_domains_file(path, label):
                     domains.add(line.lower())
         return domains
     except FileNotFoundError:
-        print(f'Warning: {label} not found at {path}. Proceeding with empty set.')
+        print(f'Warning: {label} not found at {path}')
         return set()
     except Exception as e:
-        print(f'Warning: Failed to load {label}: {e}. Proceeding with empty set.')
+        print(f'Warning: Failed to load {label}: {e}')
         return set()
 
 
 def _load_blacklist():
-    """Read malicious_domains.txt and return a lowercase set of domains"""
+    """Read malicious domains and return set"""
     return _load_domains_file(BLACKLIST_PATH, 'blacklist')
 
 
 def _load_shorteners():
-    """Read shorteners.txt and return a lowercase set of known shortener domains"""
+    """Read shortener domains and return set"""
     return _load_domains_file(SHORTENERS_PATH, 'shorteners')
 
 
-# Main Class
+# Public Utilities - Normalization
+def normalize_domain(domain):
+    """Normalize a domain string to standard https form"""
+    if 'www.' in domain:
+        domain = domain.replace('www.', '')
+    if not domain.startswith(('http://', 'https://')):
+        domain = 'https://' + domain
+    return domain
+
+
+# Main Analysis Engine
 class UrlAnalyzer:
-    """URL Analyzer Engine; takes url and returns recommendation, rating, and data"""
+    """Engine for performing security checks on URLs"""
 
     def __init__(self):
+        """Initialize UrlAnalyzer and load domain datasets"""
         self._blacklist = _load_blacklist()
         self._shorteners = _load_shorteners()
 
     def analyze(self, url):
-        """Perform full threat analysis on a URL; return verdict dictionary"""
-        if not url.startswith(('http://', 'https://')):
-            url = 'https://' + url
+        """
+        Perform a full threat analysis on a URL and return a security verdict.
 
+        First follows redirects to find the final destination, then inspects both
+        the original and final domains against blacklists, shorteners, and
+        heuristic patterns (e.g., executable extensions or raw IP addresses)
+        """
+        # Setup - normalize URL and extract base domain
+        url = normalize_domain(url)
         original_domain = _extract_domain(url)
 
-        # Follow redirects to find true destination
+        # Resolution - follow redirects to find final destination
         final_url = url
         final_domain = original_domain
         redirected = False
@@ -166,14 +186,13 @@ class UrlAnalyzer:
             triggers_download = _check_download_headers(response)
             response.close()
         except requests.RequestException as e:
-            # Graceful fallback - offline analysis on original domain only
             network_error = str(e)
 
-        # Pre-compute all detection flags before scoring
+        # Inspection - check domain datasets and patterns
         blacklisted_original = _is_blacklisted(original_domain, self._blacklist)
         blacklisted_final = _is_blacklisted(final_domain, self._blacklist)
         executable_url = _has_executable_extension(final_url)
-        is_shortened = original_domain in self._shorteners
+        is_shortened = _is_shortened(original_domain, self._shorteners)
         excess_subdomains = (
             _count_subdomains(original_domain) > MAX_SUBDOMAIN_COUNT or
             _count_subdomains(final_domain) > MAX_SUBDOMAIN_COUNT
@@ -181,11 +200,11 @@ class UrlAnalyzer:
         raw_ip = _is_raw_ip(original_domain) or _is_raw_ip(final_domain)
         general_download = triggers_download and not executable_url
 
+        # Scoring - calculate final rating and recommendation
         strikes = 0
         if blacklisted_original or blacklisted_final or executable_url:
             rating = MIN_RATING
         else:
-            # Rule B: Cumulative penalty deductions
             if is_shortened:
                 strikes += 1
             if excess_subdomains:
